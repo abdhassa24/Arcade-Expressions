@@ -1,0 +1,56 @@
+var portal = Portal("https://www.arcgis.com/"); 
+var community= FeatureSetByPortalItem(portal,"itemid",0,['soilPH','soilMoisture','what_is_the_date_the_sample_was','schoolName','monitoring_stations_hubtwo']) 
+var student = FeatureSetByPortalItem(portal,"itemid",0,['soilPH','soilMoisture','what_is_the_date_the_sample_was','schoolName','monitoring_stations_hubtwo'])
+var start = ToLocal(Date(1970, 0, 01, 0, 0, 0, 0))
+var combinedDict = { 
+  fields: [ 
+    { name: "soilph_community", type: "esriFieldTypeDouble" },
+    { name: "soilph_student", type: "esriFieldTypeDouble" },
+    { name: "soilmoisture_community", type: "esriFieldTypeDouble" },
+    { name: "soilmoisture_student", type: "esriFieldTypeDouble" },
+    {name:"Date",type:"esriFieldTypeDate"},
+    {name:"Hub", type:"esriFieldTypeString"},
+    {name:'monitoring_station',type: "esriFieldTypeString"}
+    
+  ], 
+  geometryType: "", 
+  features: [], 
+}; 
+
+var i = 0; 
+// Loop through each FeatureSet and store its attributes 
+for (var m in student) { 
+  combinedDict.features[i++] = { 
+    attributes: { 
+      soilph_student: m["soilPH"], 
+      soilmoisture_student: m["soilMoisture"],
+      Date: DateDiff(m["what_is_the_date_the_sample_was"],start, "milliseconds"),
+      Hub: m["schoolName"],
+      monitoring_station: m["monitoring_stations_hubtwo"],
+        
+    }, 
+  }; 
+} 
+
+for (var p in community) { 
+  combinedDict.features[i++] = { 
+    attributes: {
+        soilph_community: p["soilPH"], 
+      soilmoisture_community: p["soilMoisture"], 
+       Date: DateDiff(p["what_is_the_date_the_sample_was"], start, "milliseconds"), 
+        Hub: p["schoolName"],
+        monitoring_station: p['monitoring_stations_hubtwo'],
+        
+    }, 
+  }; 
+}
+
+var fc = FeatureSet(Text(combinedDict))
+return GroupBy(fc, ['monitoring_station','Hub'], [
+       { name: 'avg_soilph_student',expression:'soilph_student', statistic: 'AVERAGE'},
+        { name: 'avg_soilph_community',expression:'soilph_community', statistic: 'AVERAGE'},
+         { name: 'avg_soilmoisture_student',expression:'soilmoisture_student', statistic: 'AVERAGE'},
+         { name: 'avg_soilmoisture_community',expression:'soilmoisture_community', statistic: 'AVERAGE'}]);
+
+
+
